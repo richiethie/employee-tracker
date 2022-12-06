@@ -18,11 +18,13 @@ const manageCompany = async () => {
         {
             type: "list",
             message: "Select from the options listed:",
-            name: "manageCompany",
+            name: "response",
             choices: [
                 "View all departments",
                 "View all roles",
                 "View all employees",
+                "View all employees by department",
+                "View all employees by role",
                 "Add a department",
                 "Add a role",
                 "Add an employee",
@@ -32,22 +34,26 @@ const manageCompany = async () => {
         }
     ])
     .then(answer => {
-        console.log(answer)
-        if (manageCompany === 'View all departments') {
+        let {response} = answer
+        if (response === 'View all departments') {
             viewDept()
-        } else if (manageCompany === 'View all roles') {
+        } else if (response === 'View all roles') {
             viewRoles()
-        } else if (manageCompany === 'View all employees') {
+        } else if (response === 'View all employees') {
             viewEmployees()
-        } else if (manageCompany === 'Add a department') {
+        } else if (response === 'View all employees by department') {
+            viewEmpByDept()
+        }  else if (response === 'View all employees by role') {
+            viewEmpByRole()
+        } else if (response === 'Add a department') {
             addDept()
-        } else if (manageCompany === 'Add a role') {
+        } else if (response === 'Add a role') {
             addRole()
-        } else if (manageCompany === 'Add an employee') {
+        } else if (response === 'Add an employee') {
             addEmployee()
-        } else if (manageCompany === 'Update an employee role') {
+        } else if (response === 'Update an employee role') {
             updateEmployee()
-        } else if (manageCompany === `I'm done`) {
+        } else if (response === `I'm done`) {
             console.log("Thank you")
             process.exit()
         }
@@ -55,26 +61,185 @@ const manageCompany = async () => {
     .catch(err => console.log(err))
 }
 
-
+const viewEmployees = () => {
+    db.query("SELECT employees.first_name AS First_Name, employees.last_name AS Last_Name, roles.title AS Title, roles.salary AS Salary, department.name AS Department, CONCAT(e.firstName, ' ', e.lastName) AS Manager FROM employees INNER JOIN roles ON roles.id = employees.role_id INNER JOIN department ON department.id = roles.department_id LEFT JOIN employees e ON employees.manager_id = e.id", (err, res) => {
+        if (err) {
+            console.log(err)
+        } else {
+            console.table(res)
+        }
+    manageCompany()
+    })
+}
 
 const viewDept = () => {
-    db.query(`SELECT * FROM department`, (results) => {
-        console.table(results)
-        manageCompany()
+    db.query("SELECT department.id AS Id, department.name AS Department FROM department", (err, res) => {
+        if (err) {
+            console.log(err)
+        } else {
+            console.table(res)
+        }
+    manageCompany()
     })
 }
 
 const viewRoles = () => {
-    db.query(`SELECT * FROM roles`, (results) => {
-        console.table(results)
+    db.query("SELECT roles.id AS Dept_Id, roles.title AS Title FROM roles", (err, res) => {
+        if (err) {
+            console.log(err)
+        } else {
+            console.table(res)
+        }
+    manageCompany()
+    })
+}
+
+const viewEmpByDept = () => {
+    db.query("SELECT employees.first_name AS First_Name, employees.last_name AS Last_Name, department.name AS Department FROM employees INNER JOIN roles ON employees.role_id = roles.id INNER JOIN department ON roles.department_id = department.id ORDER BY department.id", (err, res) => {
+        if (err) {
+            console.log(err)
+        } else {
+            console.table(res)
+        }
+    manageCompany()
+    })
+}
+
+const viewEmpByRole = () => {
+    db.query("SELECT employees.first_name AS First_Name, employees.last_name AS Last_Name, roles.title AS Title FROM employees INNER JOIN roles ON employees.role_id = roles.id ORDER BY roles.id", (err, res) => {
+        if (err) {
+            console.log(err)
+        } else {
+            console.table(res)
+        }
+    manageCompany()
+    })
+}
+
+let roleArr = []
+const selectRole = () => {
+    db.query("SELECT * FROM roles", (err, res) => {
+        if (err) {
+            console.log(err)
+        } else {
+            for (var i = 0; i < res.length; i++) {
+                roleArr.push(res[i].title)
+            }
+        }
+    })
+    return roleArr
+}
+
+let managersArr = []
+const selectManager = () => {
+    db.query("SELECT first_name, last_name FROM employees", (err, res) => {
+        if (err) {
+            console.log(err)
+        } else {
+            for (var i = 0; i < res.length; i++) {
+                managersArr.push(res[i].first_name)
+            }
+        }
+    })
+    return managersArr
+}
+
+let deptArr = []
+const selectDepartment = () => {
+    db.query("SELECT * FROM department", (err, res) => {
+        if (err) {
+            console.log(err)
+        } else {
+            for (var i = 0; i < res.length; i++) {
+                deptArr.push(res[i].name)
+            }
+        }
+    })
+    return deptArr
+}
+
+const addEmployee = () => {
+    inquirer.prompt([
+        {
+            type: "input",
+            message: "What is the employee's first name?",
+            name: "first_name"
+        },
+        {
+            type: "input",
+            message: "What is the employee's last name?",
+            name: "last_name"
+        },
+        {
+            type: "list",
+            message: "What is the role of this employee?",
+            name: "role",
+            choices: selectRole()
+        },
+        {
+            type: "list",
+            message: "Who is the manager of this employee?",
+            name: "manager",
+            choices: selectManager()
+        }
+    ]).then(answer => {
+        const role_id = selectRole().indexOf(answer.role) + 1
+        const manager_id = selectManager().indexOf(answer.manager) + 1
+        db.query("INSERT INTO employees SET ?", 
+        {
+            first_name: answer.first_name,
+            last_name: answer.last_name,
+            manager_id: manager_id,
+            role_id: role_id
+        }, (err) => {
+            if (err) {
+                console.log(err)
+            } else {
+                console.table(answer)
+            }
+        })
         manageCompany()
     })
 }
 
-const viewEmployees = () => {
-    db.query(`SELECT * FROM employees`, (results) => {
-        console.table(results)
-        manageCompany()
+
+const updateEmployee = () => {
+    db.query("SELECT employees.last_name, roles.title FROM employees INNER JOIN roles ON employees.role_id = roles.id", (err, res) => {
+        if (err) throw err
+        inquirer.prompt([
+            {
+                type: "list",
+                message: "What is the last name of the employee?",
+                name:  "last_name",
+                choices: function () {
+                    let lastNameArr = []
+                    for (var i = 0; i < res.length; i++) {
+                        lastNameArr.push(res[i].last_name)
+                    }
+                    return lastNameArr
+                }
+            },
+            {
+                type: "list",
+                message: "What is the new role of the employee?",
+                name: "role",
+                choices: selectRole()
+            }
+        ]).then(answer => {
+            let role_id = selectRole().indexOf(answer.role) + 1
+            db.query("UPDATE employees SET WHERE ?", 
+            {
+                last_name: answer.last_name,
+                role_id: role_id
+            }, (err) => {
+                if (err) {
+                    console.log(err)
+                } else {
+                    console.table(answer)
+                }
+            })
+            manageCompany()
+        })
     })
 }
 
@@ -83,83 +248,67 @@ const addDept = () => {
         {
             type: "input",
             message: "What department would you like to add?",
-            name: "roleTitle"
+            name: "name"
+        },
+        {
+            type: "input",
+            message: "What is the new department ID number?",
+            name: "id"
         }
-        
-    ])
-    .then(answer => {
-        db.query(`INSERT INTO department(name)
-        VALUES(?)`, answer.addDept, (results) => {
-            db.query(`SELECT * FROM department`, (results) => {
-                console.table(results)
-                manageCompany()
-            })
+    ]).then(answer => {
+        db.query("INSERT INTO department SET ?", 
+        {
+            name: answer.name,
+            id: answer.id
+        }, (err) => {
+            if (err) {
+                console.log(err)
+            } else {
+                console.table(answer)
+            }
         })
+        manageCompany()
     })
 }
 
 const addRole = () => {
-    const deptChoices = () => db.promise().query(`SELECT * FROM department`)
-        .then((rows) => {
-            let arrNames = rows[0].map(obj => obj.name)
-            return arrNames
+    db.query("SELECT roles.title AS Title, roles.salary AS Salary FROM roles LEFT JOIN department.name AS Department FROM department", (err, res) => {
+        inquirer.prompt([
+            {
+                type: "input",
+                message: "What is the name of the new role?",
+                name: "title"
+            },
+            {
+                type: "input",
+                message: "What is the salary of the new role?",
+                name: "salary"
+            },
+            {
+                type: "list",
+                message: "Under which department does this new role fit?",
+                name: "department",
+                choices: selectDepartment()
+            }
+        ]).then(answer => {
+            const deptId = selectDepartment().indexOf(answer.department) + 1 // ch
+            db.query("INSERT INTO roles SET ?", 
+            {
+                title: answer.title,
+                salary: answer.salary,
+                department_id: deptId
+            }, (err) => {
+                if (err) {
+                    console.log(err)
+                } else {
+                    console.table(answer)
+                }
+            })
+            manageCompany()
         })
-    inquirer.prompt([
-        {
-            type: "input",
-            message: "What is the title of the role you'd like to add?",
-            name: "roleTitle"
-        },
-        {
-            type: "input",
-            message: "What is the salary of this role?",
-            name: "roleSalary"
-        },
-        {
-            type: "list",
-            message: "Which department is this role in?",
-            name: "addDept",
-            choices: deptChoices
-        }
-    ])
-    .then(answer => {
-        db.promise().query(`SELECT id FROM department WHERE name = ?`, answer.addDept)
-            .then(answer => {
-                let mappedId = answer[0].map(obj => obj.id)
-                return mappedId
-            })
-            .then((mappedId) => {
-                db.promise().query(`INSERT INTO roles(title, salary, department_id)
-                VALUES(?, ?, ?)`, [answer.roleTitle, answer.roleSalary, mappedId])
-                manageCompany()
-            })
     })
 }
 
-const addEmployee = () => {
-    inquirer.prompt([
-        {
-            type: "input",
-            message: "What is the first name of the employee?",
-            name: "firstName"
-        },
-        {
-            type: "input",
-            message: "What is the last name of the employee?",
-            name: "lastName"
-        },
-        
-    ])
-    .then(answer => {
-        db.query(`INSERT INTO employees(first_name, last_name)
-        VALUES (?, ?)`, [answer.firstName, answer.lastName], (results) => {
-            db.query(`SELECT * FROM employees`, (results) => {
-                console.table(results)
-                manageCompany()
-            })
-        })
-    })
-}
 
 
 manageCompany()
