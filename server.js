@@ -4,8 +4,6 @@ import inquirer from 'inquirer'
 import consoleTable from 'console.table'
 import mysql from 'mysql2'
 
-const PORT = process.env.PORT || 3001
-
 const db = mysql.createConnection({
     host: 'localhost',
     user: process.env.DB_USER,
@@ -15,8 +13,8 @@ const db = mysql.createConnection({
 
 // THEN I am presented with the following options: view all departments, view all roles, view all employees, add a department, add a role, add an employee, and update an employee role
 
-const manageCompany = () => {
-    inquirer.prompt([
+const manageCompany = async () => {
+    await inquirer.prompt([
         {
             type: "list",
             message: "Select from the options listed:",
@@ -57,7 +55,7 @@ const manageCompany = () => {
     .catch(err => console.log(err))
 }
 
-manageCompany()
+
 
 const viewDept = () => {
     db.query(`SELECT * FROM department`, (results) => {
@@ -162,3 +160,6 @@ const addEmployee = () => {
         })
     })
 }
+
+
+manageCompany()
