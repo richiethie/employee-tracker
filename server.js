@@ -62,7 +62,7 @@ const manageCompany = async () => {
 }
 
 const viewEmployees = () => {
-    db.query("SELECT employees.first_name AS First_Name, employees.last_name AS Last_Name, roles.title AS Title, roles.salary AS Salary, department.name AS Department, CONCAT(e.firstName, ' ', e.lastName) AS Manager FROM employees INNER JOIN roles ON roles.id = employees.role_id INNER JOIN department ON department.id = roles.department_id LEFT JOIN employees e ON employees.manager_id = e.id", (err, res) => {
+    db.query("SELECT employees.first_name AS First_Name, employees.last_name AS Last_Name, roles.title AS Title, roles.salary AS Salary, department.name AS Department, employees.first_name AND employees.last_name WHERE manager_id = NULL AS Manager FROM employees INNER JOIN roles ON roles.id = employees.role_id INNER JOIN department ON department.id = roles.department_id LEFT JOIN employees ON employees.manager_id = employee.id", (err, res) => {
         if (err) {
             console.log(err)
         } else {
@@ -195,6 +195,7 @@ const addEmployee = () => {
             if (err) {
                 console.log(err)
             } else {
+                console.log("EMPLOYEE ADDED")
                 console.table(answer)
             }
         })
