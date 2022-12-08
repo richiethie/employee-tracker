@@ -62,7 +62,15 @@ const manageCompany = async () => {
 }
 
 const viewEmployees = () => {
-    db.query("SELECT employees.first_name AS First_Name, employees.last_name AS Last_Name, roles.title AS Title, roles.salary AS Salary, department.name AS Department, employees.first_name AND employees.last_name WHERE manager_id = NULL AS Manager FROM employees INNER JOIN roles ON roles.id = employees.role_id INNER JOIN department ON department.id = roles.department_id LEFT JOIN employees ON employees.manager_id = employee.id", (err, res) => {
+    db.query(`SELECT employees.first_name AS First_Name,
+     employees.last_name AS Last_Name,
+      roles.title AS Role, department.name AS Dept,
+       roles.salary AS Salary,
+       CONCAT(e.first_name, ' ' ,e.last_name) AS Manager
+         FROM employees
+          INNER JOIN roles ON employees.role_id = roles.id 
+          INNER JOIN department ON roles.department_id = department.id 
+          LEFT JOIN employees e ON employees.manager_id = e.id`, (err, res) => {
         if (err) {
             console.log(err)
         } else {
