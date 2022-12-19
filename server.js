@@ -138,6 +138,21 @@ const selectRole = () => {
     return roleArr
 }
 
+let employeeArr = []
+const selectEmployee = () => {
+    db.query("SELECT last_name FROM employees", (err, res) => {
+        if (err) {
+            console.log(err)
+        } else {
+            for (var i = 0; i < res.length; i++) {
+                employeeArr.push(res[i].last_name)
+            }
+            
+        }
+    })
+    return employeeArr
+}
+
 let managersArr = []
 const selectManager = () => {
     db.query("SELECT first_name, last_name FROM employees", (err, res) => {
@@ -213,43 +228,35 @@ const addEmployee = () => {
 
 
 const updateEmployee = () => {
-    db.query("SELECT employees.last_name, roles.title FROM employees INNER JOIN roles ON employees.role_id = roles.id", (err, res) => {
-        if (err) throw err
-        inquirer.prompt([
+    inquirer.prompt([
+        {
+            type: "list",
+            message: "What is the last name of the employee?",
+            name: "last_name",
+            choices: selectEmployee()
+        },
+        {
+            type: "list",
+            message: "What is the new role of the employee?",
+            name: "role",
+            choices: selectRole()
+        }
+    ]).then(answer => {
+        let employee_id = selectEmployee().indexOf(answer.last_name) + 1
+        let role_id = selectRole().indexOf(answer.role) + 1
+        db.query(`UPDATE employees SET role_id = ? WHERE employees.id = ${employee_id}`,
             {
-                type: "list",
-                message: "What is the last name of the employee?",
-                name:  "last_name",
-                choices: function () {
-                    let lastNameArr = []
-                    for (var i = 0; i < res.length; i++) {
-                        lastNameArr.push(res[i].last_name)
-                    }
-                    return lastNameArr
-                }
-            },
-            {
-                type: "list",
-                message: "What is the new role of the employee?",
-                name: "role",
-                choices: selectRole()
-            }
-        ]).then(answer => {
-            let role_id = selectRole().indexOf(answer.role) + 1
-            db.query("UPDATE employees SET WHERE ?", 
-            {
-                last_name: answer.last_name,
                 role_id: role_id
-            }, (err) => {
+            }, (err, res) => {
                 if (err) {
                     console.log(err)
                 } else {
-                    console.table(answer)
+                    console.table(res)
+                    manageCompany()
                 }
             })
-            manageCompany()
-        })
     })
+
 }
 
 const addDept = () => {
@@ -281,12 +288,18 @@ const addDept = () => {
 }
 
 const addRole = () => {
-    db.query("SELECT roles.title AS Title, roles.salary AS Salary FROM roles LEFT JOIN department.name AS Department FROM department", (err, res) => {
+    db.query("SELECT roles.title AS Title, roles.salary AS Salary, department.name AS Department FROM roles LEFT JOIN department ON roles.department_id = department.id", (err, res) => {
+        if (err) throw err
         inquirer.prompt([
             {
                 type: "input",
                 message: "What is the name of the new role?",
                 name: "title"
+            },
+            {
+                type: "input",
+                message: "What is the new role's Id?",
+                name: "id"
             },
             {
                 type: "input",
@@ -300,17 +313,18 @@ const addRole = () => {
                 choices: selectDepartment()
             }
         ]).then(answer => {
-            const deptId = selectDepartment().indexOf(answer.department) + 1 // ch
+            const deptId = selectDepartment().indexOf(answer.department) + 1
             db.query("INSERT INTO roles SET ?", 
             {
                 title: answer.title,
+                id: answer.id,
                 salary: answer.salary,
                 department_id: deptId
             }, (err) => {
                 if (err) {
                     console.log(err)
                 } else {
-                    console.table(answer)
+                    console.table(res)
                 }
             })
             manageCompany()
