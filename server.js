@@ -11,7 +11,6 @@ const db = mysql.createConnection({
     database: process.env.DB_NAME
 })
 
-// THEN I am presented with the following options: view all departments, view all roles, view all employees, add a department, add a role, add an employee, and update an employee role
 
 const manageCompany = async () => {
     await inquirer.prompt([
@@ -230,6 +229,11 @@ const addEmployee = () => {
 const updateEmployee = () => {
     inquirer.prompt([
         {
+            type: "input",
+            message: "Please confirm you would like to update an employee by typing 'Y'",
+            name: "confirm"
+        },
+        {
             type: "list",
             message: "What is the last name of the employee?",
             name: "last_name",
@@ -244,7 +248,7 @@ const updateEmployee = () => {
     ]).then(answer => {
         let employee_id = selectEmployee().indexOf(answer.last_name) + 1
         let role_id = selectRole().indexOf(answer.role) + 1
-        db.query(`UPDATE employees SET role_id = ? WHERE employees.id = ${employee_id}`,
+        db.query(`UPDATE employees SET ? WHERE employees.id = ${employee_id}`,
             {
                 role_id: role_id
             }, (err, res) => {
@@ -252,6 +256,7 @@ const updateEmployee = () => {
                     console.log(err)
                 } else {
                     console.table(res)
+                    console.log("---UPDATED EMPLOYEE---")
                     manageCompany()
                 }
             })
